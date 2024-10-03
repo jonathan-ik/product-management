@@ -5,129 +5,131 @@ import { App } from '@/app';
 import { CreateUserDto } from '@dtos/users.dto';
 import { UserRoute } from '@routes/users.route';
 
-afterAll(async () => {
-  await new Promise<void>(resolve => setTimeout(() => resolve(), 500));
+jest.mock('mongoose');
+jest.mock('bcrypt');
+
+const mockedBcryptHash = bcrypt.hash as jest.Mock;
+const mockedMongooseFind = mongoose.Model.find as jest.Mock;
+const mockedMongooseFindOne = mongoose.Model.findOne as jest.Mock;
+const mockedMongooseCreate = mongoose.Model.create as jest.Mock;
+const mockedMongooseFindByIdAndUpdate = mongoose.Model.findByIdAndUpdate as jest.Mock;
+const mockedMongooseFindByIdAndDelete = mongoose.Model.findByIdAndDelete as jest.Mock;
+
+const mockUsersData = [
+  { _id: '1', email: 'a@email.com', password: 'hashedPassword1' },
+  { _id: '2', email: 'b@email.com', password: 'hashedPassword2' },
+  { _id: '3', email: 'c@email.com', password: 'hashedPassword3' },
+];
+
+const userData: CreateUserDto = {
+  first_name: 'John',
+  last_name: 'Doe',
+  email: 'test@email.com',
+  password: 'q1w2e3r4',
+  phone_number: '1234567890',
+  image: 'default.png', 
+};
+
+let app;
+
+beforeAll(async () => {
+  mockedBcryptHash.mockResolvedValue('hashedPassword');
+  app = new App([new UserRoute()]);
 });
 
-describe('Testing Users', () => {
+afterAll(async () => {
+  jest.clearAllMocks();
+});
+
+describe('Testing Users Service', () => {
   describe('[GET] /users', () => {
-    it('response fineAll Users', async () => {
-      const usersRoute = new UserRoute();
-      const users = usersRoute.usersController.userService.users;
+    it('should return all users', async () => {
+      mockedMongooseFind.mockResolvedValueOnce(mockUsersData);
 
-      users.find = jest.fn().mockReturnValue([
-        {
-          _id: 'qpwoeiruty',
-          email: 'a@email.com',
-          password: await bcrypt.hash('q1w2e3r4!', 10),
-        },
-        {
-          _id: 'alskdjfhg',
-          email: 'b@email.com',
-          password: await bcrypt.hash('a1s2d3f4!', 10),
-        },
-        {
-          _id: 'zmxncbv',
-          email: 'c@email.com',
-          password: await bcrypt.hash('z1x2c3v4!', 10),
-        },
-      ]);
-
-      (mongoose as any).connect = jest.fn();
-      const app = new App([usersRoute]);
-      return request(app.getServer()).get(`${usersRoute.path}`).expect(200);
+      const response = await request(app.getServer()).get('/users');
+      expect(response.status).toBe(200);
+      expect(response.body.length).toBe(3);
+      expect(response.body[0].email).toBe('a@email.com');
     });
   });
 
   describe('[GET] /users/:id', () => {
-    it('response findOne User', async () => {
-      const userId = 'qpwoeiruty';
+    it('should return a user by ID', async () => {
+      const userId = '1';
+      mockedMongooseFindOne.mockResolvedValueOnce(mockUsersData[0]);
 
-      const usersRoute = new UserRoute();
-      const users = usersRoute.usersController.userService.users;
+      const response = await request(app.getServer()).get(`/users/${userId}`);
+      expect(response.status).toBe(200);
+      expect(response.body._id).toBe(userId);
+    });
 
-      users.findOne = jest.fn().mockReturnValue({
-        _id: 'qpwoeiruty',
-        email: 'a@email.com',
-        password: await bcrypt.hash('q1w2e3r4!', 10),
-      });
+    it('should return 409 when user not found', async () => {
+      const userId = 'nonexistent';
+      mockedMongooseFindOne.mockResolvedValueOnce(null);
 
-      (mongoose as any).connect = jest.fn();
-      const app = new App([usersRoute]);
-      return request(app.getServer()).get(`${usersRoute.path}/${userId}`).expect(200);
+      const response = await request(app.getServer()).get(`/users/${userId}`);
+      expect(response.status).toBe(409);
+      expect(response.body.message).toBe("User doesn't exist");
     });
   });
 
   describe('[POST] /users', () => {
-    it('response Create User', async () => {
-      const userData: CreateUserDto = {
-        email: 'test@email.com',
-        password: 'q1w2e3r4',
-      };
+    it('should create a user', async () => {
+      mockedMongooseFindOne.mockResolvedValueOnce(null); // No user with that email
+      mockedMongooseCreate.mockResolvedValueOnce({ ...userData, _id: '4', password: 'hashedPassword' });
 
-      const usersRoute = new UserRoute();
-      const users = usersRoute.usersController.userService.users;
+      const response = await request(app.getServer()).post('/users').send(userData);
+      expect(response.status).toBe(201);
+      expect(response.body.email).toBe(userData.email);
+    });
 
-      users.findOne = jest.fn().mockReturnValue(null);
-      users.create = jest.fn().mockReturnValue({
-        _id: '60706478aad6c9ad19a31c84',
-        email: userData.email,
-        password: await bcrypt.hash(userData.password, 10),
-      });
+    it('should return 409 when email already exists', async () => {
+      mockedMongooseFindOne.mockResolvedValueOnce(mockUsersData[0]); // User exists with that email
 
-      (mongoose as any).connect = jest.fn();
-      const app = new App([usersRoute]);
-      return request(app.getServer()).post(`${usersRoute.path}`).send(userData).expect(201);
+      const response = await request(app.getServer()).post('/users').send(userData);
+      expect(response.status).toBe(409);
+      expect(response.body.message).toBe(`This email ${userData.email} already exists`);
     });
   });
 
   describe('[PUT] /users/:id', () => {
-    it('response Update User', async () => {
-      const userId = '60706478aad6c9ad19a31c84';
-      const userData: CreateUserDto = {
-        email: 'test@email.com',
-        password: 'q1w2e3r4',
-      };
+    it('should update a user', async () => {
+      const userId = '1';
+      mockedMongooseFindOne.mockResolvedValueOnce(null); // No other user with the same email
+      mockedMongooseFindByIdAndUpdate.mockResolvedValueOnce({ ...userData, _id: userId });
 
-      const usersRoute = new UserRoute();
-      const users = usersRoute.usersController.userService.users;
+      const response = await request(app.getServer()).put(`/users/${userId}`).send(userData);
+      expect(response.status).toBe(200);
+      expect(response.body.email).toBe(userData.email);
+    });
 
-      if (userData.email) {
-        users.findOne = jest.fn().mockReturnValue({
-          _id: userId,
-          email: userData.email,
-          password: await bcrypt.hash(userData.password, 10),
-        });
-      }
+    it('should return 409 when updating to an existing email', async () => {
+      const userId = '2'; // Trying to update user 2's email to an existing one
+      mockedMongooseFindOne.mockResolvedValueOnce(mockUsersData[0]); // Email belongs to user 1
 
-      users.findByIdAndUpdate = jest.fn().mockReturnValue({
-        _id: userId,
-        email: userData.email,
-        password: await bcrypt.hash(userData.password, 10),
-      });
-
-      (mongoose as any).connect = jest.fn();
-      const app = new App([usersRoute]);
-      return request(app.getServer()).put(`${usersRoute.path}/${userId}`).send(userData);
+      const response = await request(app.getServer()).put(`/users/${userId}`).send(userData);
+      expect(response.status).toBe(409);
+      expect(response.body.message).toBe(`This email ${userData.email} already exists`);
     });
   });
 
   describe('[DELETE] /users/:id', () => {
-    it('response Delete User', async () => {
-      const userId = '60706478aad6c9ad19a31c84';
+    it('should delete a user', async () => {
+      const userId = '1';
+      mockedMongooseFindByIdAndDelete.mockResolvedValueOnce(mockUsersData[0]);
 
-      const usersRoute = new UserRoute();
-      const users = usersRoute.usersController.userService.users;
+      const response = await request(app.getServer()).delete(`/users/${userId}`);
+      expect(response.status).toBe(200);
+      expect(response.body._id).toBe(userId);
+    });
 
-      users.findByIdAndDelete = jest.fn().mockReturnValue({
-        _id: '60706478aad6c9ad19a31c84',
-        email: 'test@email.com',
-        password: await bcrypt.hash('q1w2e3r4!', 10),
-      });
+    it('should return 409 when user not found', async () => {
+      const userId = 'nonexistent';
+      mockedMongooseFindByIdAndDelete.mockResolvedValueOnce(null);
 
-      (mongoose as any).connect = jest.fn();
-      const app = new App([usersRoute]);
-      return request(app.getServer()).delete(`${usersRoute.path}/${userId}`).expect(200);
+      const response = await request(app.getServer()).delete(`/users/${userId}`);
+      expect(response.status).toBe(409);
+      expect(response.body.message).toBe("User doesn't exist");
     });
   });
 });

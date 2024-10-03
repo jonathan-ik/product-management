@@ -2,7 +2,7 @@ import { NextFunction, Request, Response } from 'express';
 import { Product } from '@interfaces/product.interface';
 import { ProductService } from '@services/product.service';
 import { RequestWithProduct } from '@/interfaces/auth.interface';
-import { s3Upload } from '@/helpers/s3.helper';
+import { s3ProductUpload } from '@/helpers/s3.helper';
 import { MulterRequest } from '@/interfaces/multer.interface';
 
 export class ProductController {
@@ -78,7 +78,7 @@ export class ProductController {
   public addProductReview = async (req: Request, res: Response, next: NextFunction) => {
     try {
       const productId: string = req.params.id;
-      const reviewData = req.body;  // Assuming body contains { id, name, review }
+      const reviewData = req.body;  // Assuming body contains { id,name, review }
       const updatedProduct = await this.productService.addProductReview(productId, reviewData);
       res.status(200).json({ data: updatedProduct, message: 'Review added successfully' });
     } catch (error) {
@@ -91,7 +91,7 @@ export class ProductController {
     try {
       const productId: string = req.params.id;
       const file = req.file;  // Assuming the file is uploaded via multipart form
-      const imageUrl = await s3Upload(productId, file);
+      const imageUrl = await s3ProductUpload(productId, file);
       const updatedProduct = await this.productService.updateProductImage(productId, imageUrl);
       res.status(200).json({ data: updatedProduct, message: 'Product image uploaded successfully' });
     } catch (error) {

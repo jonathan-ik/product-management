@@ -19,15 +19,15 @@ const createCookie = (tokenData: TokenData): string => {
 
 export class AuthService {
   public userModel = UserModel;
-  public async signup(userData: User): Promise<User> {
-    const findUser: User = await this.userModel.findOne({ email: userData.email });
-    if (findUser) throw new HttpException(409, `This email ${userData.email} already exists`);
+  // public async signup(userData: User): Promise<User> {
+  //   const findUser: User = await this.userModel.findOne({ email: userData.email });
+  //   if (findUser) throw new HttpException(409, `This email ${userData.email} already exists`);
 
-    const hashedPassword = await hash(userData.password, parseInt(SALT));
-    const createUserData: User = await this.userModel.create({ ...userData, password: hashedPassword });
+  //   const hashedPassword = await hash(userData.password, parseInt(SALT));
+  //   const createUserData: User = await this.userModel.create({ ...userData, password: hashedPassword });
 
-    return createUserData;
-  }
+  //   return createUserData;
+  // }
 
   public async login(userData: User): Promise<{ cookie: string; findUser: User }> {
     const findUser: User = await this.userModel.findOne({ email: userData.email });
@@ -48,6 +48,4 @@ export class AuthService {
 
     return findUser;
   }
-
-  
 }

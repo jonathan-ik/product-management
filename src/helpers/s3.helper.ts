@@ -14,15 +14,28 @@ export const s3Upload = async (userId: string, file: any) => {
   return imageUrl;
 };
 
-export const postUpload = async (userId: string, file: any) => {
+export const s3ProductUpload = async (productId: string, file: any) => {
   const s3Client = new S3Client();
 
   const param = {
     Bucket: AWS_BUCKET_NAME,
-    Key: `uploads/posts/${userId}-${file.originalname}`,
+    Key: `uploads/products/${productId}-${file.originalname}`,
     Body: file.buffer,
   };
   s3Client.send(new PutObjectCommand(param))
   const imageUrl = `https://${AWS_BUCKET_NAME}.s3.amazonaws.com/${param.Key}`;
   return imageUrl;
 };
+
+// export const postUpload = async (userId: string, file: any) => {
+//   const s3Client = new S3Client();
+
+//   const param = {
+//     Bucket: AWS_BUCKET_NAME,
+//     Key: `uploads/posts/${userId}-${file.originalname}`,
+//     Body: file.buffer,
+//   };
+//   s3Client.send(new PutObjectCommand(param))
+//   const imageUrl = `https://${AWS_BUCKET_NAME}.s3.amazonaws.com/${param.Key}`;
+//   return imageUrl;
+// };

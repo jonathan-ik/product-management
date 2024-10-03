@@ -32,7 +32,6 @@ export class CreateUserDto {
 }
 
 export class UpdateUserDto {
-  @IsEmail()
   public email: string;
 
   @IsString()
@@ -43,5 +42,11 @@ export class UpdateUserDto {
   @IsNotEmpty()
   public last_name: string;
 
+  @IsOptional()
+  @IsNotEmpty()
+  @IsString()
+  @MinLength(11)
+  @MaxLength(14)
+  public phone_number: string;
  
 }
