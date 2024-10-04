@@ -13,6 +13,7 @@ import { dbConnection } from '@database';
 import { Routes } from '@interfaces/routes.interface';
 import { ErrorMiddleware } from '@middlewares/error.middleware';
 import { logger, stream } from '@utils/logger';
+import 'module-alias/register';
 
 export class App {
   public app: express.Application;

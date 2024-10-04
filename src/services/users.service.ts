@@ -1,7 +1,7 @@
 import { hash } from 'bcrypt';
-import { HttpException } from '@exceptions/HttpException';
-import { User } from '@interfaces/users.interface';
-import { UserModel } from '@models/users.model';
+import { HttpException } from '../exceptions/HttpException';;
+import { User } from '../interfaces/users.interface';
+import { UserModel } from '../models/users.model';
 
 export class UserService {
   public userModel = UserModel;

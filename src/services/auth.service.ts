@@ -1,10 +1,10 @@
 import { hash, compare } from 'bcrypt';
 import { sign } from 'jsonwebtoken';
-import { SALT, SECRET_KEY } from '@config';
-import { HttpException } from '@exceptions/HttpException';
-import { DataStoredInToken, TokenData } from '@interfaces/auth.interface';
-import { User } from '@interfaces/users.interface';
-import { UserModel } from '@models/users.model';
+import { SALT, SECRET_KEY } from '../config';
+import { HttpException } from '../exceptions/HttpException';
+import { DataStoredInToken, TokenData } from '../interfaces/auth.interface';
+import { User } from '../interfaces/users.interface';
+import { UserModel } from '../models/users.model';
 
 const createToken = (user: User): TokenData => {
   const dataStoredInToken: DataStoredInToken = { _id: user._id };
@@ -19,16 +19,7 @@ const createCookie = (tokenData: TokenData): string => {
 
 export class AuthService {
   public userModel = UserModel;
-  // public async signup(userData: User): Promise<User> {
-  //   const findUser: User = await this.userModel.findOne({ email: userData.email });
-  //   if (findUser) throw new HttpException(409, `This email ${userData.email} already exists`);
-
-  //   const hashedPassword = await hash(userData.password, parseInt(SALT));
-  //   const createUserData: User = await this.userModel.create({ ...userData, password: hashedPassword });
-
-  //   return createUserData;
-  // }
-
+  
   public async login(userData: User): Promise<{ cookie: string; findUser: User }> {
     const findUser: User = await this.userModel.findOne({ email: userData.email });
     if (!findUser) throw new HttpException(409, `This email ${userData.email} was not found`);
@@ -42,10 +33,10 @@ export class AuthService {
     return { cookie, findUser };
   }
 
-  public async logout(userData: User): Promise<User> {
-    const findUser: User = await this.userModel.findOne({ email: userData.email, password: userData.password });
-    if (!findUser) throw new HttpException(409, `This email ${userData.email} was not found`);
-
-    return findUser;
+  public async logout(tokenData: DataStoredInToken): Promise<User> {
+    const findUser: User = await this.userModel.findOne({ _id: tokenData._id });
+    if (!findUser) throw new HttpException(409, `User doesn't exist`);
+    return findUser;
   }
+  
 }

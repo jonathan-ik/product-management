@@ -32,14 +32,24 @@ export class CreateUserDto {
 }
 
 export class UpdateUserDto {
+  @IsEmail()
   public email: string;
 
   @IsString()
   @IsNotEmpty()
+  @MinLength(9)
+  @MaxLength(32)
+  @IsOptional()
+  public password: string;
+
+  @IsString()
+  @IsNotEmpty()
+  @IsOptional()
   public first_name: string;
 
   @IsString()
   @IsNotEmpty()
+  @IsOptional()
   public last_name: string;
 
   @IsOptional()
